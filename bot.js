@@ -24,6 +24,9 @@ const RANK_MAP = {
   '1484979782872469674': 'Major'
 };
 
+const SAS_MEMBER_ROLE = '1484330769206874193';
+const MANAGEMENT_ROLE = '1491007183473872927';
+
 const commands = [
   new SlashCommandBuilder()
     .setName('setup')
@@ -473,12 +476,109 @@ client.on('interactionCreate', async interaction => {
 client.once('ready', async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
   
+  // Auto-sync existing members with SAS Member role
+  try {
+    const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID);
+    const members = await guild.members.fetch();
+    
+    console.log(`Checking ${members.size} members for SAS role...`);
+    let added = 0;
+    
+    for (const [id, member] of members) {
+      if (member.user.bot) continue;
+      
+      // Skip if already in database
+      const { data: existing } = await supabase
+        .from('personnel')
+        .select('discord_id')
+        .eq('discord_id', member.id)
+        .single();
+      
+      if (existing) continue;
+      
+      // Check if they have SAS Member role
+      if (member.roles.cache.has(SAS_MEMBER_ROLE)) {
+        const isAdmin = member.roles.cache.has(MANAGEMENT_ROLE);
+        
+        // Determine rank from other roles
+        let rank = 'Private'; // Default for SAS members
+        for (const [roleId, role] of member.roles.cache) {
+          if (RANK_MAP[roleId]) {
+            rank = RANK_MAP[roleId];
+            break; // Take first match
+          }
+        }
+        
+        await supabase.from('personnel').insert({
+          discord_id: member.id,
+          discord_username: member.user.username,
+          nickname: member.nickname || member.user.username,
+          rank: rank,
+          is_admin: isAdmin,
+          joined_at: member.joinedAt?.toISOString() || new Date().toISOString()
+        });
+        
+        console.log(`✅ Auto-added: ${member.user.username} (${rank})${isAdmin ? ' [ADMIN]' : ''}`);
+        added++;
+      }
+    }
+    
+    console.log(`✅ Sync complete. Added ${added} new members.`);
+  } catch (err) {
+    console.error('Auto-sync error:', err);
+  }
+  
+  // Register slash commands
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
   await rest.put(
     Routes.applicationCommands(client.user.id),
     { body: commands.map(c => c.toJSON()) }
   );
   console.log('✅ Commands registered');
+});
+
+// Also add members when they get the role
+client.on('guildMemberUpdate', async (oldMember, newMember) => {
+  // Check if they just got the SAS Member role
+  const hadRole = oldMember.roles.cache.has(SAS_MEMBER_ROLE);
+  const hasRoleNow = newMember.roles.cache.has(SAS_MEMBER_ROLE);
+  
+  if (!hadRole && hasRoleNow) {
+    console.log(`Member ${newMember.user.username} got SAS role, adding to DB...`);
+    
+    const isAdmin = newMember.roles.cache.has(MANAGEMENT_ROLE);
+    let rank = 'Private';
+    
+    for (const [roleId, role] of newMember.roles.cache) {
+      if (RANK_MAP[roleId]) {
+        rank = RANK_MAP[roleId];
+        break;
+      }
+    }
+    
+    await supabase.from('personnel').upsert({
+      discord_id: newMember.id,
+      discord_username: newMember.user.username,
+      nickname: newMember.nickname || newMember.user.username,
+      rank: rank,
+      is_admin: isAdmin,
+      joined_at: newMember.joinedAt?.toISOString() || new Date().toISOString()
+    }, {
+      onConflict: 'discord_id',
+      ignoreDuplicates: false // Update if exists
+    });
+    
+    console.log(`✅ Added/Updated: ${newMember.user.username}`);
+  }
+  
+  // Check if they got management role (promote to admin)
+  if (!oldMember.roles.cache.has(MANAGEMENT_ROLE) && 
+      newMember.roles.cache.has(MANAGEMENT_ROLE)) {
+    await supabase.from('personnel')
+      .update({ is_admin: true })
+      .eq('discord_id', newMember.id);
+    console.log(`👑 Promoted ${newMember.user.username} to admin`);
+  }
 });
 
 client.login(process.env.BOT_TOKEN);
