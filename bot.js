@@ -20,7 +20,7 @@ const RANK_MAP = {
   '1479933066993598565': 'Sergeant',
   '1479933245331345469': 'Corporal',
   '1479933135230734441': 'Lieutenant',
-  '1492237941899268267': 'High Command',
+  '1492237941899268267': 'Private',
   '1484979782872469674': 'Major'
 };
 
@@ -191,73 +191,66 @@ client.on('interactionCreate', async interaction => {
         await interaction.reply({ content: '✅ Application button posted!', ephemeral: true });
         break;
 
-      case 'syncranks':
-        await interaction.deferReply({ ephemeral: true });
-        
-        const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID);
-        await guild.members.fetch();
-        
-        let inserted = 0;
-        let errors = 0;
-        const batch = [];
-        
-        for (const [memberId, member] of guild.members.cache) {
-          if (member.user.bot) continue;
-          
-          let highestRank = 'Recruit';
-          let isAdmin = false;
-          
-          for (const [roleId, role] of member.roles.cache) {
-            if (RANK_MAP[roleId]) {
-              const rank = RANK_MAP[roleId];
-              if (['High Command', 'Colonel', 'Major', 'Captain'].includes(rank)) {
-                isAdmin = true;
-              }
-              highestRank = rank;
-            }
-          }
-          
-          batch.push({
-            discord_id: member.id,
-            discord_username: member.user.username,
-            nickname: member.nickname || member.user.username,
-            rank: highestRank,
-            is_admin: isAdmin,
-            joined_at: member.joinedAt?.toISOString() || new Date().toISOString()
-          });
-          
-          // Batch insert every 50
-          if (batch.length >= 50) {
-            const { error } = await supabase.from('personnel').upsert(batch, { 
-              onConflict: 'discord_id',
-              ignoreDuplicates: false 
-            });
-            if (error) {
-              console.error('Batch error:', error);
-              errors += batch.length;
-            } else {
-              inserted += batch.length;
-            }
-            batch.length = 0;
-          }
+ case 'syncranks':
+  await interaction.deferReply({ ephemeral: true });
+  
+  const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID);
+  await guild.members.fetch();
+  
+  let inserted = 0;
+  let updated = 0;
+  let preserved = 0;
+  
+  for (const [memberId, member] of guild.members.cache) {
+    if (member.user.bot) continue;
+    
+    // Check if already in database
+    const { data: existing } = await supabase
+      .from('personnel')
+      .select('is_admin')
+      .eq('discord_id', member.id)
+      .single();
+    
+    let highestRank = 'Recruit';
+    let isAdmin = existing?.is_admin || false; // Preserve existing admin status!
+    
+    for (const [roleId, role] of member.roles.cache) {
+      if (RANK_MAP[roleId]) {
+        const rank = RANK_MAP[roleId];
+        // Only auto-promote to admin, never demote
+        if (['High Command', 'Colonel', 'Major', 'Captain'].includes(rank)) {
+          isAdmin = true;
         }
-        
-        // Insert remainder
-        if (batch.length > 0) {
-          const { error } = await supabase.from('personnel').upsert(batch, { 
-            onConflict: 'discord_id',
-            ignoreDuplicates: false 
-          });
-          if (error) {
-            errors += batch.length;
-          } else {
-            inserted += batch.length;
-          }
-        }
-        
-        await interaction.editReply(`✅ Synced ${inserted} members\n❌ Errors: ${errors}`);
-        break;
-
+        highestRank = rank;
+      }
+    }
+    
+    const { error } = await supabase.from('personnel').upsert({
+      discord_id: member.id,
+      discord_username: member.user.username,
+      nickname: member.nickname || member.user.username,
+      rank: highestRank,
+      is_admin: isAdmin, // Now preserves your manual admin status
+      joined_at: member.joinedAt?.toISOString() || new Date().toISOString()
+    }, {
+      onConflict: 'discord_id'
+    });
+    
+    if (error) {
+      console.error(`Failed to sync ${member.user.username}:`, error);
+    } else {
+      if (existing) updated++;
+      else inserted++;
+      if (existing?.is_admin && !isAdmin) preserved++;
+    }
+  }
+  
+  await interaction.editReply(
+    `✅ Inserted: ${inserted}\n` +
+    `🔄 Updated: ${updated}\n` +
+    `👑 Preserved admins: ${preserved}`
+  );
+  break;
       case 'addpersonnel':
         const user = interaction.options.getUser('user');
         const { error: addError } = await supabase.from('personnel').insert({
