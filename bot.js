@@ -405,7 +405,7 @@ client.on('interactionCreate', async interaction => {
         });
         
         try {
-          await target.send(`🎉 **WELCOME TO SAS!**\n\nYour application has been **APPROVED**.\nStarting Rank: **${interaction.options.getString('rank')}**`);
+          await target.send(`🎉 **APPLICATION APPROVED✅.** Welcome to the Special Air Service. **\n\nYour application has been **APPROVED**.\nStarting Rank: **${interaction.options.getString('rank')}**`);
         } catch (e) {
           console.log('Could not DM user');
         }
@@ -428,7 +428,7 @@ client.on('interactionCreate', async interaction => {
           .eq('status', 'pending');
         
         try {
-          await rejTarget.send(`❌ **APPLICATION REJECTED**\n\nReason: ${reason}`);
+          await rejTarget.send(`❌ **APPLICATION DENIED**\n\nReason: ${reason}`);
         } catch (e) {
           console.log('Could not DM user');
         }
