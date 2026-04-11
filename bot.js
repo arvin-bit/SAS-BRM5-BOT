@@ -50,6 +50,14 @@ const MANAGEMENT_ROLE = '1491007183473872927';
 
 const commands = [
   new SlashCommandBuilder()
+  .setName('debug')
+  .setDescription('Developer-only debug command'),
+
+  new SlashCommandBuilder()
+  .setName('synccommands')
+  .setDescription('Developer-only: Force sync all slash commands'),
+
+  new SlashCommandBuilder()
     .setName('help')
     .setDescription('Show all available commands'),
 
@@ -425,6 +433,78 @@ client.on('interactionCreate', async interaction => {
 
   await interaction.reply({
     content: `🗑️ Squadron **${callsign}** has been removed.`,
+    ephemeral: true
+  });
+
+  break;
+}
+  case 'synccommands': {
+  // Developer-only protection
+  if (interaction.user.id !== '1233834364610019381') {
+    return interaction.reply({
+      content: '❌ This command is restricted to the developer.',
+      ephemeral: true
+    });
+  }
+
+  await interaction.reply({ content: '🔄 Syncing commands…', ephemeral: true });
+
+  try {
+    const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
+
+    await rest.put(
+      Routes.applicationGuildCommands(client.user.id, process.env.DISCORD_GUILD_ID),
+      { body: commands.map(c => c.toJSON()) }
+    );
+
+    await interaction.editReply('✅ Commands synced successfully.');
+  } catch (err) {
+    console.error(err);
+    await interaction.editReply('❌ Failed to sync commands.');
+  }
+
+  break;
+}
+case 'debug': {
+  // Developer-only protection
+  if (interaction.user.id !== '1233834364610019381') {
+    return interaction.reply({
+      content: '❌ This command is restricted to the developer.',
+      ephemeral: true
+    });
+  }
+
+  // Collect useful debug info
+  const guild = interaction.guild;
+  const member = await guild.members.fetch(interaction.user.id);
+
+  const debugData = {
+    botUser: client.user.tag,
+    botId: client.user.id,
+    guildName: guild.name,
+    guildId: guild.id,
+    yourUsername: interaction.user.tag,
+    yourId: interaction.user.id,
+    yourRoles: member.roles.cache.map(r => `${r.name} (${r.id})`),
+    commandCount: commands.length,
+    timestamp: new Date().toISOString()
+  };
+
+  const embed = new EmbedBuilder()
+    .setTitle('🛠️ Developer Debug Panel')
+    .setColor(0x00FFFF)
+    .addFields(
+      { name: 'Bot', value: `${debugData.botUser} (${debugData.botId})` },
+      { name: 'Guild', value: `${debugData.guildName} (${debugData.guildId})` },
+      { name: 'You', value: `${debugData.yourUsername} (${debugData.yourId})` },
+      { name: 'Your Roles', value: debugData.yourRoles.join('\n') || 'None' },
+      { name: 'Loaded Commands', value: debugData.commandCount.toString() },
+      { name: 'Timestamp', value: debugData.timestamp }
+    )
+    .setFooter({ text: 'Developer Access Only' });
+
+  await interaction.reply({
+    embeds: [embed],
     ephemeral: true
   });
 
