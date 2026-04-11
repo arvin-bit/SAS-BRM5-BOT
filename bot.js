@@ -496,8 +496,7 @@ client.on('interactionCreate', async interaction => {
     console.error(err);
     await interaction.reply({ content: `❌ Error: ${err.message}`, ephemeral: true });
   }
-});
-case 'warn':
+  case 'warn':
   const warnTarget = interaction.options.getUser('user');
   const warnReason = interaction.options.getString('reason');
 
@@ -565,6 +564,8 @@ case 'ban':
   await interaction.reply({ content: `⛔ Banned **${banTarget.username}**`, ephemeral: true });
   break;
 
+
+});
 
 client.once('ready', async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
