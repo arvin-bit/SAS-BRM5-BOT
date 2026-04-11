@@ -37,6 +37,10 @@ const MANAGEMENT_ROLE = '1491007183473872927';
 
 const commands = [
   new SlashCommandBuilder()
+  .setName('help')
+  .setDescription('Show all available commands'),
+
+  new SlashCommandBuilder()
   .setName('canannounce')
   .setDescription('Toggle announcement permission for a user (Admin only)')
   .addUserOption(o => o.setName('user').setDescription('User').setRequired(true))
@@ -596,6 +600,21 @@ case 'ban':
     console.error(err);
     await interaction.reply({ content: `❌ Error: ${err.message}`, ephemeral: true });
   }
+  case 'help':
+  // Build dynamic list of commands
+  const commandList = commands
+    .map(cmd => `\`/${cmd.name}\` — ${cmd.description}`)
+    .join('\n');
+
+  const helpEmbed = new EmbedBuilder()
+    .setTitle('📘 SAS Bot Help Menu')
+    .setDescription('Here are all available commands:')
+    .addFields({ name: 'Commands', value: commandList })
+    .setColor(0x5865F2)
+    .setTimestamp();
+
+  await interaction.reply({ embeds: [helpEmbed], ephemeral: true });
+  break;
 
 });
 
