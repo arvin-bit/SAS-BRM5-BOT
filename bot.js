@@ -825,10 +825,12 @@ client.once('ready', async () => {
 
   // Register slash commands
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
-  await rest.put(
-    Routes.applicationCommands(client.user.id),
-    { body: commands.map(c => c.toJSON()) }
-  );
+await rest.put(
+  Routes.applicationGuildCommands(client.user.id, process.env.DISCORD_GUILD_ID),
+  { body: commands.map(c => c.toJSON()) }
+);
+
+
   console.log('✅ Commands registered');
 });
 
