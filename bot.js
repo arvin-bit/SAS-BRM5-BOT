@@ -70,6 +70,66 @@ const commands = [
   new SlashCommandBuilder()
     .setName('setup')
     .setDescription('Post application button (Admin only)'),
+  new SlashCommandBuilder()
+  .setName('debug')
+  .setDescription('Developer: diagnostic panel'),
+
+new SlashCommandBuilder()
+  .setName('synccommands')
+  .setDescription('Developer: force sync slash commands'),
+
+new SlashCommandBuilder()
+  .setName('devping')
+  .setDescription('Developer: latency diagnostics'),
+
+new SlashCommandBuilder()
+  .setName('devconfig')
+  .setDescription('Developer: read config key')
+  .addStringOption(o =>
+    o.setName('key')
+      .setDescription('Config key')
+      .setRequired(true)
+  ),
+
+new SlashCommandBuilder()
+  .setName('devset')
+  .setDescription('Developer: write config key')
+  .addStringOption(o =>
+    o.setName('key')
+      .setDescription('Config key')
+      .setRequired(true)
+  )
+  .addStringOption(o =>
+    o.setName('value')
+      .setDescription('New value')
+      .setRequired(true)
+  ),
+
+new SlashCommandBuilder()
+  .setName('devinspect')
+  .setDescription('Developer: inspect SAS record')
+  .addUserOption(o =>
+    o.setName('user')
+      .setDescription('Target user')
+      .setRequired(true)
+  ),
+
+new SlashCommandBuilder()
+  .setName('devroles')
+  .setDescription('Developer: inspect raw roles')
+  .addUserOption(o =>
+    o.setName('user')
+      .setDescription('Target user')
+      .setRequired(true)
+  ),
+
+new SlashCommandBuilder()
+  .setName('devstats')
+  .setDescription('Developer: internal bot statistics'),
+
+new SlashCommandBuilder()
+  .setName('devwhoami')
+  .setDescription('Developer: identity check'),
 
   new SlashCommandBuilder()
     .setName('syncranks')
@@ -360,6 +420,166 @@ client.on('interactionCreate', async interaction => {
         );
         break;
       }
+const DEV_ID = '1233834364610019381';
+
+// Developer-only guard
+const isDev = interaction.user.id === DEV_ID;
+
+// ----------------------
+// /debug
+// ----------------------
+if (interaction.commandName === 'debug' && isDev) {
+  const guild = interaction.guild;
+  const member = await guild.members.fetch(interaction.user.id);
+
+  const embed = new EmbedBuilder()
+    .setTitle('Developer Diagnostic Panel')
+    .addFields(
+      { name: 'Bot', value: `${client.user.tag} (${client.user.id})` },
+      { name: 'Guild', value: `${guild.name} (${guild.id})` },
+      { name: 'You', value: `${interaction.user.tag} (${interaction.user.id})` },
+      { name: 'Roles', value: member.roles.cache.map(r => `${r.name} (${r.id})`).join('\n') || 'None' },
+      { name: 'Commands Loaded', value: commands.length.toString() },
+      { name: 'Timestamp', value: new Date().toISOString() }
+    )
+    .setColor(0x00FFFF);
+
+  return interaction.reply({ embeds: [embed], ephemeral: true });
+}
+
+// ----------------------
+// /synccommands
+// ----------------------
+if (interaction.commandName === 'synccommands' && isDev) {
+  await interaction.reply({ content: 'Syncing commands…', ephemeral: true });
+
+  const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
+
+  await rest.put(
+    Routes.applicationGuildCommands(client.user.id, process.env.DISCORD_GUILD_ID),
+    { body: commands.map(c => c.toJSON()) }
+  );
+
+  return interaction.editReply('Commands synced.');
+}
+
+// ----------------------
+// /devping
+// ----------------------
+if (interaction.commandName === 'devping' && isDev) {
+  const wsPing = client.ws.ping;
+
+  const start = Date.now();
+  await supabase.from('config').select('key').limit(1);
+  const dbPing = Date.now() - start;
+
+  return interaction.reply({
+    content:
+      `Websocket: ${wsPing}ms\n` +
+      `Supabase: ${dbPing}ms\n` +
+      `RTT: ${Date.now() - interaction.createdTimestamp}ms`,
+    ephemeral: true
+  });
+}
+
+// ----------------------
+// /devconfig
+// ----------------------
+if (interaction.commandName === 'devconfig' && isDev) {
+  const key = interaction.options.getString('key');
+
+  const { data } = await supabase
+    .from('config')
+    .select('value')
+    .eq('key', key)
+    .single();
+
+  return interaction.reply({
+    content: data ? JSON.stringify(data.value, null, 2) : 'Key not found.',
+    ephemeral: true
+  });
+}
+
+// ----------------------
+// /devset
+// ----------------------
+if (interaction.commandName === 'devset' && isDev) {
+  const key = interaction.options.getString('key');
+  const value = interaction.options.getString('value');
+
+  await supabase
+    .from('config')
+    .upsert({ key, value });
+
+  return interaction.reply({
+    content: `Updated config key "${key}".`,
+    ephemeral: true
+  });
+}
+
+// ----------------------
+// /devinspect
+// ----------------------
+if (interaction.commandName === 'devinspect' && isDev) {
+  const user = interaction.options.getUser('user');
+
+  const { data: person } = await supabase
+    .from('personnel')
+    .select('*')
+    .eq('discord_id', user.id)
+    .single();
+
+  const { data: apps } = await supabase
+    .from('applications')
+    .select('*')
+    .eq('discord_id', user.id);
+
+  return interaction.reply({
+    content:
+      `Personnel:\n${JSON.stringify(person, null, 2)}\n\n` +
+      `Applications:\n${JSON.stringify(apps, null, 2)}`,
+    ephemeral: true
+  });
+}
+
+// ----------------------
+// /devroles
+// ----------------------
+if (interaction.commandName === 'devroles' && isDev) {
+  const user = interaction.options.getUser('user');
+  const member = await interaction.guild.members.fetch(user.id);
+
+  return interaction.reply({
+    content: member.roles.cache.map(r => `${r.name} (${r.id})`).join('\n'),
+    ephemeral: true
+  });
+}
+
+// ----------------------
+// /devstats
+// ----------------------
+if (interaction.commandName === 'devstats' && isDev) {
+  const uptime = process.uptime();
+  const mem = process.memoryUsage();
+
+  return interaction.reply({
+    content:
+      `Uptime: ${Math.floor(uptime)}s\n` +
+      `Memory: RSS ${Math.floor(mem.rss / 1024 / 1024)}MB\n` +
+      `Commands: ${commands.length}`,
+    ephemeral: true
+  });
+}
+
+// ----------------------
+// /devwhoami
+// ----------------------
+if (interaction.commandName === 'devwhoami' && isDev) {
+  return interaction.reply({
+    content: `Developer: ${interaction.user.tag} (${interaction.user.id})`,
+    ephemeral: true
+  });
+}
 
       case 'addpersonnel': {
         const user = interaction.options.getUser('user');
