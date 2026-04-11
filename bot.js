@@ -37,6 +37,12 @@ const MANAGEMENT_ROLE = '1491007183473872927';
 
 const commands = [
   new SlashCommandBuilder()
+  .setName('canannounce')
+  .setDescription('Toggle announcement permission for a user (Admin only)')
+  .addUserOption(o => o.setName('user').setDescription('User').setRequired(true))
+  .addBooleanOption(o => o.setName('value').setDescription('Allow announcements?').setRequired(true)),
+  
+  new SlashCommandBuilder()
     .setName('setup')
     .setDescription('Post application button (Admin only)'),
   
@@ -188,6 +194,21 @@ client.on('interactionCreate', async interaction => {
       console.error(error);
       return interaction.reply({ content: 'Error submitting application.', ephemeral: true });
     }
+      const logChannel = await client.channels.fetch('1492118287260323961');
+
+  const appEmbed = new EmbedBuilder()
+    .setTitle('📥 New SAS Application')
+    .addFields(
+      { name: 'Discord', value: `${interaction.user.tag} (${interaction.user.id})`, inline: false },
+      { name: 'Roblox Username', value: app.roblox_username, inline: true },
+      { name: 'BRM5 Level', value: app.brm5_level.toString(), inline: true },
+      { name: 'Reason', value: app.reason, inline: false },
+      { name: 'Found Us', value: app.found_us || 'N/A', inline: false }
+    )
+    .setColor(0x5865F2)
+    .setTimestamp();
+
+  await logChannel.send({ embeds: [appEmbed] });
     
     return interaction.reply({ 
       content: '✅ Application submitted! You will be DMd when reviewed.', 
@@ -357,6 +378,19 @@ client.on('interactionCreate', async interaction => {
         break;
 
       case 'announce':
+  const announcer = interaction.user.id;
+
+  // Check if user has can_announce
+  const { data: perm } = await supabase
+    .from('personnel')
+    .select('can_announce, is_admin')
+    .eq('discord_id', announcer)
+    .single();
+
+  if (!perm?.is_admin && !perm?.can_announce) {
+    return interaction.reply({ content: '❌ You are not allowed to send announcements.', ephemeral: true });
+  }
+
         const msg = interaction.options.getString('message');
         const pin = interaction.options.getBoolean('pin') || false;
         
