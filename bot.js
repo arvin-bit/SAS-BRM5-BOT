@@ -463,40 +463,7 @@ client.on('interactionCreate', async interaction => {
         
         await interaction.reply(`❌ Rejected **${rejTarget.username}**`);
         break;
-
-      case 'reason':
-        const viewTarget = interaction.options.getUser('user');
-        
-        const { data: viewApp } = await supabase
-          .from('applications')
-          .select('reason, brm5_level, roblox_username, found_us')
-          .eq('discord_id', viewTarget.id)
-          .order('created_at', { ascending: false })
-          .limit(1)
-          .single();
-        
-        if (!viewApp) {
-          return interaction.reply({ content: '❌ No application found.', ephemeral: true });
-        }
-        
-        const reasonEmbed = new EmbedBuilder()
-          .setTitle(`📝 Application: ${viewTarget.username}`)
-          .addFields(
-            { name: 'Roblox', value: viewApp.roblox_username, inline: true },
-            { name: 'BRM5 Level', value: viewApp.brm5_level.toString(), inline: true },
-            { name: 'Found Us', value: viewApp.found_us || 'N/A', inline: true },
-            { name: 'Reason', value: viewApp.reason }
-          )
-          .setColor(0x5865F2);
-        
-        await interaction.reply({ embeds: [reasonEmbed], ephemeral: true });
-        break;
-    }
-  } catch (err) {
-    console.error(err);
-    await interaction.reply({ content: `❌ Error: ${err.message}`, ephemeral: true });
-  }
-  case 'warn':
+          case 'warn':
   const warnTarget = interaction.options.getUser('user');
   const warnReason = interaction.options.getString('reason');
 
@@ -563,7 +530,38 @@ case 'ban':
 
   await interaction.reply({ content: `⛔ Banned **${banTarget.username}**`, ephemeral: true });
   break;
-
+      case 'reason':
+        const viewTarget = interaction.options.getUser('user');
+        
+        const { data: viewApp } = await supabase
+          .from('applications')
+          .select('reason, brm5_level, roblox_username, found_us')
+          .eq('discord_id', viewTarget.id)
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        if (!viewApp) {
+          return interaction.reply({ content: '❌ No application found.', ephemeral: true });
+        }
+        
+        const reasonEmbed = new EmbedBuilder()
+          .setTitle(`📝 Application: ${viewTarget.username}`)
+          .addFields(
+            { name: 'Roblox', value: viewApp.roblox_username, inline: true },
+            { name: 'BRM5 Level', value: viewApp.brm5_level.toString(), inline: true },
+            { name: 'Found Us', value: viewApp.found_us || 'N/A', inline: true },
+            { name: 'Reason', value: viewApp.reason }
+          )
+          .setColor(0x5865F2);
+        
+        await interaction.reply({ embeds: [reasonEmbed], ephemeral: true });
+        break;
+    }
+  } catch (err) {
+    console.error(err);
+    await interaction.reply({ content: `❌ Error: ${err.message}`, ephemeral: true });
+  }
 
 });
 
