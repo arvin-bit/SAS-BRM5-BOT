@@ -70,13 +70,6 @@ const commands = [
   new SlashCommandBuilder()
     .setName('setup')
     .setDescription('Post application button (Admin only)'),
-  new SlashCommandBuilder()
-  .setName('debug')
-  .setDescription('Developer: diagnostic panel'),
-
-new SlashCommandBuilder()
-  .setName('debug')
-  .setDescription('Developer: diagnostic panel'),
 
 
 new SlashCommandBuilder()
