@@ -14,14 +14,22 @@ const client = new Client({
 // Rank mapping based on your role IDs
 const RANK_MAP = {
   '1479932842879221901': 'Captain',
-  '1479932804434235473': 'Colonel', 
-  '1479931890504044646': 'High Command',
-  '1479932981731922004': 'Staff Sergeant',
+  '1479932608023498792': 'Colonel', 
+  '1479932649538850918': 'Lieutenant Colonel',
+  '1479931890504044646': 'ADMINS',
+  '1479932981731922004': 'Lieutenant',
   '1479933066993598565': 'Sergeant',
-  '1479933245331345469': 'Corporal',
+  '1479933135230734441': 'Corporal',
+  '1479933245331345469': 'Lance Corporal',
   '1479933135230734441': 'Lieutenant',
   '1492237941899268267': 'Private',
-  '1484979782872469674': 'Major'
+  '1484979782872469674': 'Major',
+  '1484979782872469674': 'Chancellor',
+  '1479931742612885716': 'General',
+  '1479932018975571988': 'Brigadier General',
+  '1479932144536260679': 'Lieutenant General',
+  '1479932549206642718': 'Brigadier',
+  '1484979921704194129': 'Legionary'
 };
 
 const SAS_MEMBER_ROLE = '1484330769206874193';
