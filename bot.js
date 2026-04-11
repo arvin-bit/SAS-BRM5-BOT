@@ -49,30 +49,6 @@ const SAS_MEMBER_ROLE = '1484330769206874193';
 const MANAGEMENT_ROLE = '1491007183473872927';
 
 const commands = [
-
-  new SlashCommandBuilder()
-  .setName('announce-training')
-  .setDescription('Announce a training session (Pilot-Instructors only)')
-  .addStringOption(o =>
-    o.setName('type')
-      .setDescription('Training type')
-      .setRequired(true)
-      .addChoices(
-        { name: 'Pilot', value: 'pilot' },
-        { name: 'Other', value: 'other' }
-      )
-  )
-  .addStringOption(o =>
-    o.setName('time')
-      .setDescription('Training time (Hammertime format. eg. <t:2123013180:F>)')
-      .setRequired(true)
-  )
-  .addStringOption(o =>
-    o.setName('notes')
-      .setDescription('Additional notes')
-      .setRequired(false)
-  ),
-
   new SlashCommandBuilder()
   .setName('debug')
   .setDescription('Developer-only debug command'),
@@ -355,46 +331,6 @@ client.on('interactionCreate', async interaction => {
 
     return interaction.reply({ embeds: [helpEmbed], ephemeral: true });
   }
-  case 'announce-training': {
-  const PILOT_INSTRUCTOR_ROLE = '1491923464951693464';
-  const ANNOUNCEMENTS_CHANNEL = '1479939560250020031'; // replace with actual channel ID
-
-  const member = await interaction.guild.members.fetch(interaction.user.id);
-
-  // Permission check: must have pilot-instructor role
-  if (!member.roles.cache.has(PILOT_INSTRUCTOR_ROLE)) {
-    return interaction.reply({
-      content: 'You are not authorized to announce trainings.',
-      ephemeral: true
-    });
-  }
-
-  const type = interaction.options.getString('type');
-  const time = interaction.options.getString('time'); // hammertime
-  const notes = interaction.options.getString('notes') || 'No additional notes.';
-
-  const channel = await client.channels.fetch(ANNOUNCEMENTS_CHANNEL);
-
-  const header =
-    type === 'pilot'
-      ? 'PILOT TRAINING NOTICE'
-      : 'TRAINING NOTICE';
-
-  const msg =
-    `${header}\n\n` +
-    `Time: ${time}\n` +
-    `Type: ${type === 'pilot' ? 'Pilot Training' : 'General Training'}\n` +
-    `Notes: ${notes}\n\n` +
-    `Arrive early and be prepared.`;
-
-  await channel.send(msg);
-
-  return interaction.reply({
-    content: 'Training announcement sent.',
-    ephemeral: true
-  });
-}
-
 
   // Admin check for all other commands
   if (!await isAdmin(interaction.user.id)) {
