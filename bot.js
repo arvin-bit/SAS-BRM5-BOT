@@ -548,6 +548,21 @@ case 'kick':
 
   await interaction.reply({ content: `👢 Kicked **${kickTarget.username}**`, ephemeral: true });
   break;
+          case 'help':
+  // Build dynamic list of commands
+  const commandList = commands
+    .map(cmd => `\`/${cmd.name}\` — ${cmd.description}`)
+    .join('\n');
+
+  const helpEmbed = new EmbedBuilder()
+    .setTitle('📘 SAS Bot Help Menu')
+    .setDescription('Here are all available commands:')
+    .addFields({ name: 'Commands', value: commandList })
+    .setColor(0x5865F2)
+    .setTimestamp();
+
+  await interaction.reply({ embeds: [helpEmbed], ephemeral: true });
+  break;
 case 'ban':
   const banTarget = interaction.options.getUser('user');
   const banReason = interaction.options.getString('reason');
@@ -600,21 +615,6 @@ case 'ban':
     console.error(err);
     await interaction.reply({ content: `❌ Error: ${err.message}`, ephemeral: true });
   }
-  case 'help':
-  // Build dynamic list of commands
-  const commandList = commands
-    .map(cmd => `\`/${cmd.name}\` — ${cmd.description}`)
-    .join('\n');
-
-  const helpEmbed = new EmbedBuilder()
-    .setTitle('📘 SAS Bot Help Menu')
-    .setDescription('Here are all available commands:')
-    .addFields({ name: 'Commands', value: commandList })
-    .setColor(0x5865F2)
-    .setTimestamp();
-
-  await interaction.reply({ embeds: [helpEmbed], ephemeral: true });
-  break;
 
 });
 
