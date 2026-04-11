@@ -595,6 +595,35 @@ client.on('interactionCreate', async interaction => {
           roblox_username: app.roblox_username,
           rank: interaction.options.getString('rank')
         });
+        // Auto-assign Discord roles on approval
+try {
+  const guild = interaction.guild;
+  const member = await guild.members.fetch(target.id);
+
+  // Roles to add
+  const rolesToAdd = [
+    '1484330769206874193',
+    '1479933271918907503'
+  ];
+
+  // Role to remove
+  const roleToRemove = '1484338693576724480';
+
+  // Add roles
+  for (const roleId of rolesToAdd) {
+    if (!member.roles.cache.has(roleId)) {
+      await member.roles.add(roleId).catch(() => {});
+    }
+  }
+
+  // Remove unwanted role
+  if (member.roles.cache.has(roleToRemove)) {
+    await member.roles.remove(roleToRemove).catch(() => {});
+  }
+
+} catch (err) {
+  console.log('Role assignment failed:', err);
+}
 
         try {
           await target.send(
