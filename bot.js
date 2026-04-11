@@ -75,8 +75,9 @@ const commands = [
   .setDescription('Developer: diagnostic panel'),
 
 new SlashCommandBuilder()
-  .setName('synccommands')
-  .setDescription('Developer: force sync slash commands'),
+  .setName('debug')
+  .setDescription('Developer: diagnostic panel'),
+
 
 new SlashCommandBuilder()
   .setName('devping')
@@ -445,22 +446,6 @@ if (interaction.commandName === 'debug' && isDev) {
     .setColor(0x00FFFF);
 
   return interaction.reply({ embeds: [embed], ephemeral: true });
-}
-
-// ----------------------
-// /synccommands
-// ----------------------
-if (interaction.commandName === 'synccommands' && isDev) {
-  await interaction.reply({ content: 'Syncing commands…', ephemeral: true });
-
-  const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
-
-  await rest.put(
-    Routes.applicationGuildCommands(client.user.id, process.env.DISCORD_GUILD_ID),
-    { body: commands.map(c => c.toJSON()) }
-  );
-
-  return interaction.editReply('Commands synced.');
 }
 
 // ----------------------
