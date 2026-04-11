@@ -70,7 +70,24 @@ const commands = [
     .setDescription('Send announcement to site and Discord (Admin only)')
     .addStringOption(o => o.setName('message').setDescription('Announcement text').setRequired(true))
     .addBooleanOption(o => o.setName('pin').setDescription('Pin to site?').setRequired(false)),
-  
+    new SlashCommandBuilder()
+  .setName('warn')
+  .setDescription('Warn a member')
+  .addUserOption(o => o.setName('user').setDescription('User to warn').setRequired(true))
+  .addStringOption(o => o.setName('reason').setDescription('Reason for warning').setRequired(true)),
+
+  new SlashCommandBuilder()
+  .setName('kick')
+  .setDescription('Kick a member')
+  .addUserOption(o => o.setName('user').setDescription('User to kick').setRequired(true))
+  .addStringOption(o => o.setName('reason').setDescription('Reason for kick').setRequired(true)),
+
+  new SlashCommandBuilder()
+  .setName('ban')
+  .setDescription('Ban a member')
+  .addUserOption(o => o.setName('user').setDescription('User to ban').setRequired(true))
+  .addStringOption(o => o.setName('reason').setDescription('Reason for ban').setRequired(true)),
+
   new SlashCommandBuilder()
     .setName('status')
     .setDescription('Set unit status (Admin only)')
@@ -472,6 +489,74 @@ client.on('interactionCreate', async interaction => {
     await interaction.reply({ content: `❌ Error: ${err.message}`, ephemeral: true });
   }
 });
+case 'warn':
+  const warnTarget = interaction.options.getUser('user');
+  const warnReason = interaction.options.getString('reason');
+
+  const warnEmbed = new EmbedBuilder()
+    .setTitle('⚠️ Warning Issued')
+    .addFields(
+      { name: 'Member', value: `<@${warnTarget.id}>`, inline: true },
+      { name: 'Reason', value: warnReason, inline: true }
+    )
+    .setColor(0xFBBF24)
+    .setTimestamp();
+
+  const warnChannel = await client.channels.fetch('1491822614681747652');
+  await warnChannel.send({ embeds: [warnEmbed] });
+
+  try {
+    await warnTarget.send(`⚠️ You have been warned.\nReason: **${warnReason}**`);
+  } catch (e) {
+    console.log('Could not DM user');
+  }
+
+  await interaction.reply({ content: `⚠️ Warned **${warnTarget.username}**`, ephemeral: true });
+  break;
+case 'kick':
+  const kickTarget = interaction.options.getUser('user');
+  const kickReason = interaction.options.getString('reason');
+
+  const kickMember = await interaction.guild.members.fetch(kickTarget.id).catch(() => null);
+  if (!kickMember) return interaction.reply({ content: '❌ User not found in server.', ephemeral: true });
+
+  await kickMember.kick(kickReason);
+
+  const kickEmbed = new EmbedBuilder()
+    .setTitle('👢 Member Kicked')
+    .addFields(
+      { name: 'Member', value: `<@${kickTarget.id}>`, inline: true },
+      { name: 'Reason', value: kickReason, inline: true }
+    )
+    .setColor(0xDC2626)
+    .setTimestamp();
+
+  const kickChannel = await client.channels.fetch('1483582665188970510');
+  await kickChannel.send({ embeds: [kickEmbed] });
+
+  await interaction.reply({ content: `👢 Kicked **${kickTarget.username}**`, ephemeral: true });
+  break;
+case 'ban':
+  const banTarget = interaction.options.getUser('user');
+  const banReason = interaction.options.getString('reason');
+
+  await interaction.guild.members.ban(banTarget.id, { reason: banReason });
+
+  const banEmbed = new EmbedBuilder()
+    .setTitle('⛔ Member Banned')
+    .addFields(
+      { name: 'Member', value: `<@${banTarget.id}>`, inline: true },
+      { name: 'Reason', value: banReason, inline: true }
+    )
+    .setColor(0xB91C1C)
+    .setTimestamp();
+
+  const banChannel = await client.channels.fetch('1483582665188970510');
+  await banChannel.send({ embeds: [banEmbed] });
+
+  await interaction.reply({ content: `⛔ Banned **${banTarget.username}**`, ephemeral: true });
+  break;
+
 
 client.once('ready', async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
