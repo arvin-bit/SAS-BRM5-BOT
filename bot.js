@@ -880,12 +880,15 @@ try {
 
   // Roles to add
   const rolesToAdd = [
-    '1484330769206874193',
-    '1479933271918907503'
+    '1479933271918907503',
+    '1492672395155341503'
   ];
 
   // Role to remove
-  const roleToRemove = '1484338693576724480';
+  const roleToRemove = [
+    '1484338693576724480',
+    ''
+  ];
 
   // Add roles
   for (const roleId of rolesToAdd) {
