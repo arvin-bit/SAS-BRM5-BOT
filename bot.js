@@ -24,7 +24,6 @@ const client = new Client({
   ]
 });
 
-// Rank mapping based on your role IDs
 const RANK_MAP = {
   '1479933271918907503': 'Junior Operators',
   '1479933245331345469': 'Senior Operators',
@@ -221,7 +220,6 @@ async function isAdmin(userId) {
 }
 
 client.on('interactionCreate', async interaction => {
-  // Application button
   if (interaction.isButton() && interaction.customId === 'apply_sas') {
     const modal = new ModalBuilder()
       .setCustomId('application_modal')
@@ -261,7 +259,6 @@ client.on('interactionCreate', async interaction => {
     return interaction.showModal(modal);
   }
 
-  // Modal submit
   if (interaction.isModalSubmit() && interaction.customId === 'application_modal') {
     const app = {
       roblox_username: interaction.fields.getTextInputValue('roblox_username'),
@@ -303,7 +300,6 @@ client.on('interactionCreate', async interaction => {
 
   if (!interaction.isChatInputCommand()) return;
 
-  // /help is public
   if (interaction.commandName === 'help') {
     const commandList = commands
       .map(cmd => `\`/${cmd.name}\` — ${cmd.description}`)
@@ -319,7 +315,6 @@ client.on('interactionCreate', async interaction => {
     return interaction.reply({ embeds: [helpEmbed], ephemeral: true });
   }
 
-  // Admin check for all other commands
   if (!await isAdmin(interaction.user.id)) {
     return interaction.reply({ content: '❌ Admin only.', ephemeral: true });
   }
@@ -403,12 +398,9 @@ client.on('interactionCreate', async interaction => {
       }
 const DEV_ID = '1233834364610019381';
 
-// Developer-only guard
 const isDev = interaction.user.id === DEV_ID;
 
-// ----------------------
-// /debug
-// ----------------------
+
 if (interaction.commandName === 'debug' && isDev) {
   const guild = interaction.guild;
   const member = await guild.members.fetch(interaction.user.id);
@@ -428,9 +420,7 @@ if (interaction.commandName === 'debug' && isDev) {
   return interaction.reply({ embeds: [embed], ephemeral: true });
 }
 
-// ----------------------
-// /devping
-// ----------------------
+
 if (interaction.commandName === 'devping' && isDev) {
   const wsPing = client.ws.ping;
 
@@ -447,9 +437,7 @@ if (interaction.commandName === 'devping' && isDev) {
   });
 }
 
-// ----------------------
-// /devconfig
-// ----------------------
+
 if (interaction.commandName === 'devconfig' && isDev) {
   const key = interaction.options.getString('key');
 
@@ -465,9 +453,7 @@ if (interaction.commandName === 'devconfig' && isDev) {
   });
 }
 
-// ----------------------
-// /devset
-// ----------------------
+
 if (interaction.commandName === 'devset' && isDev) {
   const key = interaction.options.getString('key');
   const value = interaction.options.getString('value');
@@ -482,9 +468,7 @@ if (interaction.commandName === 'devset' && isDev) {
   });
 }
 
-// ----------------------
-// /devinspect
-// ----------------------
+
 if (interaction.commandName === 'devinspect' && isDev) {
   const user = interaction.options.getUser('user');
 
@@ -507,9 +491,7 @@ if (interaction.commandName === 'devinspect' && isDev) {
   });
 }
 
-// ----------------------
-// /devroles
-// ----------------------
+
 if (interaction.commandName === 'devroles' && isDev) {
   const user = interaction.options.getUser('user');
   const member = await interaction.guild.members.fetch(user.id);
@@ -520,9 +502,7 @@ if (interaction.commandName === 'devroles' && isDev) {
   });
 }
 
-// ----------------------
-// /devstats
-// ----------------------
+
 if (interaction.commandName === 'devstats' && isDev) {
   const uptime = process.uptime();
   const mem = process.memoryUsage();
@@ -536,9 +516,7 @@ if (interaction.commandName === 'devstats' && isDev) {
   });
 }
 
-// ----------------------
-// /devwhoami
-// ----------------------
+
 if (interaction.commandName === 'devwhoami' && isDev) {
   return interaction.reply({
     content: `Developer: ${interaction.user.tag} (${interaction.user.id})`,
@@ -588,7 +566,6 @@ if (interaction.commandName === 'devwhoami' && isDev) {
       case 'removesquadron': {
   const callsign = interaction.options.getString('callsign').toUpperCase();
 
-  // Check if squadron exists
   const { data: squadron } = await supabase
     .from('squadrons')
     .select('id')
@@ -602,7 +579,6 @@ if (interaction.commandName === 'devwhoami' && isDev) {
     });
   }
 
-  // Delete squadron
   const { error } = await supabase
     .from('squadrons')
     .delete()
@@ -624,7 +600,6 @@ if (interaction.commandName === 'devwhoami' && isDev) {
   break;
 }
   case 'synccommands': {
-  // Developer-only protection
   if (interaction.user.id !== '1233834364610019381') {
     return interaction.reply({
       content: '❌ This command is restricted to the developer.',
@@ -651,7 +626,6 @@ if (interaction.commandName === 'devwhoami' && isDev) {
   break;
 }
 case 'debug': {
-  // Developer-only protection
   if (interaction.user.id !== '1233834364610019381') {
     return interaction.reply({
       content: '❌ This command is restricted to the developer.',
@@ -659,7 +633,6 @@ case 'debug': {
     });
   }
 
-  // Collect useful debug info
   const guild = interaction.guild;
   const member = await guild.members.fetch(interaction.user.id);
 
@@ -860,31 +833,26 @@ case 'debug': {
           roblox_username: app.roblox_username,
           rank: interaction.options.getString('rank')
         });
-        // Auto-assign Discord roles on approval
 try {
   const guild = interaction.guild;
   const member = await guild.members.fetch(target.id);
 
-   // Roles to add
   const rolesToAdd = [
     '1479933271918907503',
     '1492672395155341503'
   ];
 
-  // Role to remove
   const roleToRemove = [
     '1484338693576724480',
     '1492665350066671717'
   ];
 
-  // Add roles
   for (const roleId of rolesToAdd) {
     if (!member.roles.cache.has(roleId)) {
       await member.roles.add(roleId).catch(() => {});
     }
   }
 
-  // Remove unwanted role
   if (member.roles.cache.has(roleToRemove)) {
     await member.roles.remove(roleToRemove).catch(() => {});
   }
@@ -1042,7 +1010,6 @@ try {
 client.once('ready', async () => {
   console.log(`🤖 Logged in as ${client.user.tag}`);
 
-  // Auto-sync existing members with SAS Member role
   try {
     const guild = await client.guilds.fetch(process.env.DISCORD_GUILD_ID);
     const members = await guild.members.fetch();
@@ -1091,7 +1058,6 @@ client.once('ready', async () => {
     console.error('Auto-sync error:', err);
   }
 
-  // Register slash commands
   const rest = new REST({ version: '10' }).setToken(process.env.BOT_TOKEN);
 await rest.put(
   Routes.applicationGuildCommands(client.user.id, process.env.DISCORD_GUILD_ID),
@@ -1102,7 +1068,6 @@ await rest.put(
   console.log('✅ Commands registered');
 });
 
-// Also add members when they get the role
 client.on('guildMemberUpdate', async (oldMember, newMember) => {
   const hadRole = oldMember.roles.cache.has(SAS_MEMBER_ROLE);
   const hasRoleNow = newMember.roles.cache.has(SAS_MEMBER_ROLE);
